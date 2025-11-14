@@ -1,0 +1,484 @@
+{
+  "name": "Email Classification and Routing",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "fdfa7797-86d5-4e05-a367-8157e0123916",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        224
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NfYJ3dQzApCCPqQ6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "chatModel": "gpt-4o-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are an email classifier. Classify the email into exactly one of:\nsales, billing, tech-support, rest.\n\nDefinitions:\n- sales: inquiries about buying, pricing, demos, quotes, new orders, upgrades, contracts, RFPs.\n- billing: invoices, refunds, payments, receipts, failed charges, credits, taxes, account balance.\n- tech-support: bugs, errors, troubleshooting, login issues, integrations not working, outages.\n\nRules:\n- Choose sales if ANY sales intent exists.\n- Choose billing if ANY billing/finance intent exists.\n- Choose tech-support if ANY technical issue or help request exists.\n- Choose rest ONLY if none of the above apply.\n- Respond with ONLY one token: sales | billing | tech-support | rest (lowercase, no punctuation).\n"
+            },
+            {
+              "content": "={{ \"Subject: \" + $json.subject + \"\\nBody: \" + $json.textPlain }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 100,
+          "temperature": 0.3
+        },
+        "requestOptions": {}
+      },
+      "id": "ecca6b82-0917-454e-8f04-2f5f868b462e",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        -880,
+        224
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "r8yU9nmiRGAFnoMv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "table": {
+          "mode": "name",
+          "value": "emails"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "subject",
+              "value": "={{ $('Gmail Trigger').item.json.subject }}"
+            },
+            {
+              "column": "body",
+              "value": "={{ $('Gmail Trigger').item.json.text }}\n"
+            },
+            {
+              "column": "sender",
+              "value": "={{ $('Gmail Trigger').item.json.from.value[0].address }}\n"
+            },
+            {
+              "column": "received_date",
+              "value": "={{ new Date($('Gmail Trigger').item.json.date).toISOString().slice(0, 19).replace('T', ' ') }}\n"
+            },
+            {
+              "column": "gmail_id",
+              "value": "={{ $('Gmail Trigger').item.json.id }}"
+            },
+            {
+              "column": "category",
+              "value": "={{ $json.category }}"
+            },
+            {
+              "column": "processed_date",
+              "value": "={{ $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "da50a808-61d0-45a2-9553-8c2eab6de68c",
+      "name": "MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "62bhQHBeTnGYA0VK",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('CombineData').item.json.category }}",
+                    "rightValue": "sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "69ceb447-40f9-49f7-8eb1-22ba060f0095"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('CombineData').item.json.category }}",
+                    "rightValue": "billing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f5f17924-652a-4a4b-a7ad-6a4f9b5f95db"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('CombineData').item.json.category }}",
+                    "rightValue": "tech-support",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ee284e25-fbf5-4d69-baf3-abb6f798349b"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('CombineData').item.json.category }}",
+                    "rightValue": "rest",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "992732e3-9c0c-4850-b9ba-296e48811dcf"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fe01f82d-bb3d-41b8-b15e-7c8a3e866c1f",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -208,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "mode": "name",
+          "value": "#sales"
+        },
+        "text": "=📧 New Sales Email Received\nFrom: {{ $('Gmail Trigger').item.json.from }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\n\nPreview: {{ $('Gmail Trigger').item.json.textPlain.substring(0, 200) }}...",
+        "otherOptions": {}
+      },
+      "id": "c7f92d9c-7432-4854-8e1e-03f09404f249",
+      "name": "Slack - Sales",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "cd21d8ff-1ecb-47de-9407-ff64251a2806",
+      "credentials": {
+        "slackApi": {
+          "id": "YJJTmtO6uhhGAolH",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "mode": "name",
+          "value": "#billing"
+        },
+        "text": "=💰 New Billing Email Received\nFrom: {{ $('Gmail Trigger').item.json.from }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\n\nPreview: {{ $('Gmail Trigger').item.json.textPlain.substring(0, 200) }}...",
+        "otherOptions": {}
+      },
+      "id": "bcdebf86-2656-4174-8cec-a6c3442c14b5",
+      "name": "Slack - Billing",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        160
+      ],
+      "webhookId": "da336e03-89bc-4784-b3ca-25a9859e654d",
+      "credentials": {
+        "slackApi": {
+          "id": "YJJTmtO6uhhGAolH",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "mode": "name",
+          "value": "#tech-support"
+        },
+        "text": "=🔧 New Tech Support Email Received\nFrom: {{ $('Gmail Trigger').item.json.from }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\n\nPreview: {{ $('Gmail Trigger').item.json.textPlain.substring(0, 200) }}...",
+        "otherOptions": {}
+      },
+      "id": "acb7afe0-3ebd-4287-bedc-d2d639d49ea9",
+      "name": "Slack - Tech Support",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        304
+      ],
+      "webhookId": "8e77e8b6-7bb2-40cb-851c-7401b5ef3809",
+      "credentials": {
+        "slackApi": {
+          "id": "YJJTmtO6uhhGAolH",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#rest",
+          "mode": "name"
+        },
+        "text": "=📨 New Email Received (General)\nFrom: {{ $('Gmail Trigger').item.json.from }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\n\nPreview: {{ $('Gmail Trigger').item.json.textPlain.substring(0, 200) }}...",
+        "otherOptions": {}
+      },
+      "id": "48ba22ed-0145-44cf-a516-731c50962138",
+      "name": "Slack - General",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        464
+      ],
+      "webhookId": "f8aaf32f-2476-4d3e-a1b5-943856854cd0",
+      "credentials": {
+        "slackApi": {
+          "id": "YJJTmtO6uhhGAolH",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ed5d1dd-458a-4a3a-a081-559bd9b17c93",
+              "name": "gmail_id",
+              "value": "={{ $('Gmail Trigger').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "f7cbc31e-ca9d-4956-b207-cf246b374ac0",
+              "name": "subject",
+              "value": "={{ $('Gmail Trigger').item.json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "9748e429-d95c-4d39-bbad-18aca442baf4",
+              "name": "body",
+              "value": "={{ $('Gmail Trigger').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "04710301-5fac-4a55-8bf8-2f3d53196f7e",
+              "name": "sender",
+              "value": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "9e532e17-4a52-49d2-93ef-b6041758a92f",
+              "name": "received_date",
+              "value": "={{ $('Gmail Trigger').item.json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "e151f058-875e-4e32-956b-8517bf46014e",
+              "name": "category",
+              "value": "={{ $('OpenAI').item.json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "ef02e8fe-a19d-4399-94d2-955a74e5a104",
+              "name": "processed_date",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -640,
+        224
+      ],
+      "id": "447384cf-c926-4c31-a2cf-17f70b2ff0cc",
+      "name": "CombineData"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "CombineData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Slack - Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Tech Support",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - General",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CombineData": {
+      "main": [
+        [
+          {
+            "node": "MySQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "93820bb0-0711-48a4-a845-d52b1ce688df",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2626138ffa56e00ffb20b25c9fd83aa191a2c35733469e92740ceaec7da7cb44"
+  },
+  "id": "Nt9PTm3iYLi2toEU",
+  "tags": []
+}
