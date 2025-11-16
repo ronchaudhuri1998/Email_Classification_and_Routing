@@ -38,16 +38,16 @@ Switch Router
 ## 📸 Slack Output (Screenshots)
 
 ### **Sales**
-![Sales](images/EmailClassificationAndRouting_Sales.jpg)
+![Sales](images/EmailClassificationAndRouting_Sales.jpg?v=2)
 
 ### **Billing**
-![Billing](images/EmailClassificationAndRouting_Billing.jpg)
+![Billing](images/EmailClassificationAndRouting_Billing.jpg?v=2)
 
 ### **Tech Support**
-![Tech Support](images/EmailClassificationAndRouting_TechSupport.jpg)
+![Tech Support](images/EmailClassificationAndRouting_TechSupport.jpg?v=2)
 
 ### **General / Rest**
-![Rest](images/EmailClassificationAndRouting_Rest.jpg)
+![Rest](images/EmailClassificationAndRouting_Rest.jpg?v=2)
 
 ---
 
